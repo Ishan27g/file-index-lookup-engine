@@ -11,7 +11,8 @@ import (
 	tree "github.com/emirpasic/gods/trees/avltree"
 )
 var chars = []string{"a","b","c","d","e","f","g","h","i","j","k","l","m","n",
-	"o","p","q","r","s","t","u","v","w","x","y","z","0","1","2","3","4","5",
+	"o","p","q","r","s","t","u","v","w","x","y","z","A","B","C","D","E","F","G","H","I","J","K","L","M","N",
+	"O","P","Q","R","S","T","U","V","W","X","Y","Z","0","1","2","3","4","5",
 	"6","7","8","9"}
 
 
@@ -74,6 +75,7 @@ func (p *Parser)AddFile(filePath string)bool {
 	}
 	words = buildWordMap(lines, words)
 	p.lock.Lock()
+	fmt.Println("-asa-das" , words)
 	buildTree(p.tree, words)
 	p.lock.Unlock()
 	return true
@@ -81,7 +83,7 @@ func (p *Parser)AddFile(filePath string)bool {
 
 func buildWordMap(lines map[int][]string, words map[string]*SFile) map[string]*SFile {
 	for lineNum, lineStr := range lines {
-		for i, word := range lineStr {
+		for i, word := range lineStr{
 			wordLoc := words[word]
 			wordLoc.WordIndex = append(wordLoc.WordIndex, int32(i))
 			wordLoc.LineNum = append(wordLoc.LineNum, int32(lineNum))
@@ -93,6 +95,9 @@ func buildWordMap(lines map[int][]string, words map[string]*SFile) map[string]*S
 
 func buildTree(t *tree.Tree, words map[string]*SFile) {
 	for word, sf := range words {
+		if word == ""{
+			continue
+		}
 		w := int(word[0])
 		child, found := t.Get(w)
 		if found {
