@@ -1,0 +1,32 @@
+syntax="proto3";
+
+package comms;
+option go_package = "../comms";
+
+service Logging {
+  rpc LogThis (LogMessage) returns (Response) {}
+}
+service Raft {
+  rpc RequestVotes (Term) returns (Vote) {}
+}
+message LogMessage {
+  string Message = 1;
+  string Source = 2;
+}
+message Response{
+  enum Status {
+    FAIL = 0;
+    SUCCESS = 1;
+  }
+  Status status = 1;
+}
+message Term {
+  int32 TermCount = 1;
+  string LeaderPort = 2;
+}
+message Vote {
+  bool Elected = 1;
+}
+message Payload {
+  repeated string Data = 1;
+}
