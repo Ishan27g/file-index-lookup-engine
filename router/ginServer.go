@@ -22,11 +22,13 @@ type Service struct {
 	port string
 	parser *parser.Parser
 	rclient redisClient.Rdb
+	LookupChan chan string
+	ResponseSfiles chan *[]parser.SFile
 }
 func pong(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"ok":"Pong"})
 }
-func NewGinServer(p *parser.Parser, inst string) (*gin.Engine, string){
+func NewGinServer(p *parser.Parser, inst string) *Service {
 	_ = godotenv.Load("./router/.env")
 	basePort,_ := strconv.Atoi(os.Getenv("HTTP-PORT"))
 	i, _ := strconv.Atoi(inst)
@@ -37,6 +39,8 @@ func NewGinServer(p *parser.Parser, inst string) (*gin.Engine, string){
 		rclient: redisClient.Init(inst),
 		port:  ":" + strconv.Itoa(basePort+i),
 		hostname: host,
+		LookupChan: make(chan string),
+		ResponseSfiles: make(chan *[]parser.SFile),
 	}
 	
 	gin.SetMode(gin.ReleaseMode)
@@ -53,8 +57,13 @@ func NewGinServer(p *parser.Parser, inst string) (*gin.Engine, string){
 	}
 	
 	log.Println("Configured for - ",host, service.port )
-	
-	return r, service.port
+	go func() {
+		err := r.Run(service.port)
+		if err != nil {
+			log.Fatalf(err.Error(),err)
+		}
+	}()
+	return &service
 }
 
 func (p *Service)search(c *gin.Context) {
@@ -63,11 +72,25 @@ func (p *Service)search(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, "Missing params - word")
 		return
 	}
+	var sFiles *[]parser.SFile
+	done := make(chan bool)
+	go func() {
+		p.LookupChan <- word
+		sFiles = <- p.ResponseSfiles
+		done <- true
+	}()
 	sfList := p.parser.Find(word)
-	_ = parser.Stringify(sfList)
-	r := p.rclient.Get(sfList[0].Filename)
-	fmt.Println(r, len(r))
-	c.JSON(http.StatusOK, gin.H{"found":sfList[0].Filename})
+	if sfList != nil {
+		fmt.Println("Local search - ", sfList)
+	}
+	<- done
+	
+	// fmt.Println("sfiles - ", sFiles)
+	// fmt.Println("sfList - ", sfList)
+	// fmt.Println()
+	c.JSON(http.StatusOK, gin.H{"local":sfList, "remote": sFiles })
+	
+	// c.JSON(http.StatusExpectationFailed, "")
 }
 
 func (p *Service)fileUpload(c *gin.Context) {

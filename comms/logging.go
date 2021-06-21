@@ -2,57 +2,94 @@ package comms
 
 import (
 	"fmt"
+	"sync"
 	
 	ll "github.com/emirpasic/gods/lists/singlylinkedlist"
 	"golang.org/x/net/context"
 	
 	comms "ishan/FSI/comms/grpc"
+	"ishan/FSI/parser"
 )
 
 type L interface {
+	SetParser(*parser.Parser)
 	UpdatePeers(list *ll.List)
 	LogThis()
 }
 
 type LData struct {
-	msg *comms.LogMessage
+	msg *comms.Query
 	followers *ll.List
+	pool sync.Pool
+	parser         *parser.Parser
 }
+
+func (rd *LData)SetParser(p *parser.Parser){
+	rd.parser = p
+}
+
+
+func (rd *LData) Search(ctx context.Context, query *comms.Query) (*comms.QueryResponse, error) {
+	com := comms.QueryResponse{SFile: nil}
+	
+	if rd.followers.Size() == 0 {
+		sflist := rd.parser.Find(query.Word)
+		if sflist == nil{
+			return &comms.QueryResponse{SFile: nil},nil
+		}
+		for _, sf:= range *sflist{
+			com.SFile = append(com.SFile, &comms.QueryResponse_SF{
+				FileName: sf.Filename,
+				FileLoc:  sf.FileLoc,
+				LineLoc:  sf.LineNum,
+				WordLoc:  sf.WordIndex,
+			})
+		}
+		return &com,nil
+	}else { // I am leader, a follower sent this message
+		for it := rd.followers.Iterator(); it.Next(); { // send to my followers
+			switch c := it.Value().(type) {
+			case *Client:
+				rsp := c.SendLookupQuery(query.Word, query.Source)
+				if rsp != nil && rsp.SFile != nil {
+					for _, r := range rsp.SFile {
+						com.SFile = append(com.SFile, &comms.QueryResponse_SF{
+							FileName:  r.FileName,
+							FileLoc:   r.FileLoc,
+							LineLoc:   r.LineLoc,
+							WordLoc: r.WordLoc,
+						})
+					}
+				}
+			}
+		}
+		fmt.Println(query.Word, query.Source)
+		sfList := rd.parser.Find(query.Word)
+		if sfList != nil{
+			for _, sf:= range *sfList {
+				com.SFile = append(com.SFile, &comms.QueryResponse_SF{
+					FileName: sf.GetFileName(),
+					FileLoc:  sf.FileLoc,
+					LineLoc:  sf.LineNum,
+					WordLoc:  sf.WordIndex,
+				})
+			}
+		}
+	}
+	return &com, nil
+}
+
 func NewDataSync(source string) *LData {
 	return &LData{
-		msg: &comms.LogMessage{Source: source, Message: ""},
+		msg: &comms.Query{Source: source, Word: ""},
 		followers: ll.New(),
+		pool: sync.Pool{New: newQuery},
+		parser: nil,
 	}
 }
 func (rd *LData) UpdatePeers(list *ll.List) {
 	rd.followers = list
 }
-func (rd *LData) LogThis(c context.Context, lm *comms.LogMessage) (*comms.Response, error)  {
-	rsp := comms.Response{Status: FAIL}
-	if rd.followers.Size() == 0 {
-		// I am a follower,
-		// or todo -> currently leader has it empty at bootstrap
-		fmt.Println("Received grpc data from leader")
-		fmt.Println(lm.Source, lm.Message)
-		return &comms.Response{Status: SUCCESS},nil
-	}else { // I am leader, a follower sent this message
-		ack := rd.followers.Size()
-		l := logStruct{source: lm.Source, message: lm.Message}
-		fmt.Println("Sending grpc for -", rd.followers.Size())
-		for it := rd.followers.Iterator();it.Next();{ // send to my followers
-			switch c := it.Value().(type) {
-			case *Client:
-				fmt.Println("Sending grpc to -", c)
-				rsp := c.SendLogToGrpcPeer(&l)
-				if rsp.Status == SUCCESS{
-					ack--
-				}
-			}
-		}
-		if ack == 0 {
-			rsp.Status = SUCCESS
-			return &rsp, nil
-		}
-	}
-	return nil,nil
+func newQuery()interface{}{
+	return &comms.Query{Source: "", Word: ""}
 }

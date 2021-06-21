@@ -1,8 +1,8 @@
 package main
-import(
+
+import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	
 	"ishan/FSI/comms"
@@ -27,13 +27,17 @@ func load() (bool, string) {
 func main(){
 	bs, inst := load()
 	
-	_ = comms.NewRaftService(bs, inst)
+	raft := comms.NewRaftService(bs, inst)
 	
-	p := parser.Start(inst)
-	r,port := router.NewGinServer(p, inst)
-	
-	err := r.Run(port)
-	if err != nil {
-		log.Fatalf(err.Error(),err)
+	p := parser.Start(fmt.Sprintf(":%d%s", 900, inst))
+	rservice := router.NewGinServer(p, inst)
+	raft.SetParser(p)
+	for  {
+		select {
+		case word:= <- rservice.LookupChan:
+			raft.ForwardLog <- word
+			sfList := <- raft.ResponseSfList
+			rservice.ResponseSfiles <- sfList
+		}
 	}
 }

@@ -18,8 +18,8 @@ var chars = []string{"a","b","c","d","e","f","g","h","i","j","k","l","m","n",
 type SFile struct {
 	Filename  string
 	FileLoc   string
-	LineNum   []int
-	WordIndex []int
+	LineNum   []int32
+	WordIndex []int32
 }
 type Parser struct {
 	source string
@@ -83,8 +83,8 @@ func buildWordMap(lines map[int][]string, words map[string]*SFile) map[string]*S
 	for lineNum, lineStr := range lines {
 		for i, word := range lineStr {
 			wordLoc := words[word]
-			wordLoc.WordIndex = append(wordLoc.WordIndex, i)
-			wordLoc.LineNum = append(wordLoc.LineNum, lineNum)
+			wordLoc.WordIndex = append(wordLoc.WordIndex, int32(i))
+			wordLoc.LineNum = append(wordLoc.LineNum, int32(lineNum))
 			words[word] = wordLoc
 		}
 	}
@@ -137,10 +137,11 @@ func PrintFull(parser *Parser){
 	}
 	parser.lock.Unlock()
 }
-func (p *Parser)Find(word string) []SFile {
+func (p *Parser)Find(word string) *[]SFile {
 	p.lock.Lock()
 	child, found := p.tree.Get(int(word[0])) // char
 	p.lock.Unlock()
+	fmt.Println(child,found)
 	var sFile []SFile
 	if found {
 		switch c := child.(type) {
@@ -149,15 +150,16 @@ func (p *Parser)Find(word string) []SFile {
 			if found {
 				switch sfl := sfList.(type) {
 				case []*SFile: // list of *sf
-				for _, file := range sfl {
-					sFile = append(sFile, *file)
+					for _, file := range sfl {
+						sFile = append(sFile, *file)
+					}
 				}
-				
-				}
+				fmt.Println("yayayayay")
+				return &sFile
 			}
 		}
 	}
-	return sFile
+	return nil
 }
 func Stringify(sfList []SFile)string{
 	msg := ""
@@ -167,11 +169,11 @@ func Stringify(sfList []SFile)string{
 		msg += file.FileLoc + ","
 		msg += "["
 		for _, i3 := range file.LineNum {
-			msg += strconv.Itoa(i3) + ","
+			msg += strconv.Itoa(int(i3)) + ","
 		}
 		msg += "],["
 		for _, i3 := range file.WordIndex {
-			msg += strconv.Itoa(i3) + ","
+			msg += strconv.Itoa(int(i3)) + ","
 		}
 		msg += "]\n"
 	}

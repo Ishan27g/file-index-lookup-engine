@@ -82,7 +82,7 @@ func InitGrpc(port string) *GrpcSvr {
 	}
 	grpcServer := grpc.NewServer()
 	comms.RegisterRaftServer(grpcServer, &serv)
-	comms.RegisterLoggingServer(grpcServer, logg)
+	comms.RegisterLookupServer(grpcServer, logg)
 	logIt("Listening on ",serv.portString)
 	go func() {
 		if err := grpcServer.Serve(lis); err != nil { // blocking

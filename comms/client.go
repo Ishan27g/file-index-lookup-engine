@@ -12,18 +12,11 @@ func (client *Client)log(v ... interface{}) {
 	// fmt.Println("[Grpc-Client]", v)
 }
 
-const (
-	FAIL = 0
-	SUCCESS = 1
-)
-type logStruct struct{
-	source string
-	message string
-}
+
 type Client struct {
 	conn           *grpc.ClientConn
 	conRaft        comms.RaftClient
-	conLog         comms.LoggingClient
+	conLog         comms.LookupClient
 	close          chan bool
 	
 }
@@ -43,7 +36,7 @@ func StartGrpcClient(grpcPeer string) *Client {
 		return nil
 	}
 	client.conRaft = comms.NewRaftClient(client.conn)
-	client.conLog = comms.NewLoggingClient(client.conn)
+	client.conLog = comms.NewLookupClient(client.conn)
 	
 	return &client
 }
@@ -58,10 +51,11 @@ func (client *Client)SendVoteReq(termCount int, leaderPort string) bool{
 	client.log(votes.Elected)
 	return votes.Elected
 }
-func (client *Client)SendLogToGrpcPeer(d *logStruct) *comms.Response{
-	client.log("Sending payload - ", d)
-	msg := comms.LogMessage{Source: d.source, Message: d.message}
-	data, err := client.conLog.LogThis(context.Background(), &msg)
+func (client *Client) SendLookupQuery(word, source string) *comms.QueryResponse{ // ask peer to lookup
+	msg := newQuery().(*comms.Query)
+	msg.Word = word
+	msg.Source = source
+	data, err := client.conLog.Search(context.Background(), msg)
 	if err != nil {
 		return nil
 	}

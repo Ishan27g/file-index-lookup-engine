@@ -1,9 +1,14 @@
 package comms
 
+import (
+	"ishan/FSI/parser"
+)
+
 type RaftService struct {
-	ForwardLog chan string
+	ForwardLog chan string // search for this word
 	done chan bool
 	raft Raft
+	ResponseSfList chan *[]parser.SFile
 }
 
 func (rs *RaftService)Quit(){
@@ -17,9 +22,9 @@ func NewRaftService(bootstrap bool, instance string) *RaftService{
 
 	rs := RaftService{
 		ForwardLog: make(chan string, 5),
+		ResponseSfList: make(chan *[]parser.SFile, 5),
 		done:       make(chan bool),
 		raft :      Init(instance, bootstrap),
-		
 	}
 	go func() {
 		for {
@@ -29,7 +34,7 @@ func NewRaftService(bootstrap bool, instance string) *RaftService{
 			case <-rs.done:
 				return
 			case logMsg := <-rs.ForwardLog:
-				rs.raft.SendLog(logMsg) // queue back in case of network partition?
+				rs.ResponseSfList <- rs.raft.SendLookup(logMsg) // queue back in case of network partition?
 			default:
 				continue
 			}
@@ -40,4 +45,8 @@ func NewRaftService(bootstrap bool, instance string) *RaftService{
 }
 func (rs *RaftService)GetState()int{
 	return rs.raft.GetState()
+}
+
+func (rs *RaftService) SetParser(p *parser.Parser) {
+	rs.raft.SetParser(p)
 }

@@ -10,9 +10,9 @@ import (
 	
 	ll "github.com/emirpasic/gods/lists/singlylinkedlist"
 	"github.com/joho/godotenv"
-	"golang.org/x/net/context"
 	
 	comms "ishan/FSI/comms/grpc"
+	"ishan/FSI/parser"
 )
 
 
@@ -34,7 +34,8 @@ type Raft interface {
 	GetState() int
 	GetTerm() int
 	Run(inst string)
-	SendLog(msg string) int
+	SendLookup(msg string) *[]parser.SFile
+	SetParser(*parser.Parser)
 	Quit()
 }
 type State struct {
@@ -44,8 +45,16 @@ type State struct {
 	gClient        *ll.List
 	http           *HttpSrv
 	gServer        *GrpcSvr
-	done chan bool
+	done           chan bool
+	pool           sync.Pool
+	parser         *parser.Parser
 }
+
+func (s *State) SetParser(p *parser.Parser) {
+	s.parser = p
+	s.gServer.Logg.SetParser(p)
+}
+
 var getLeader = func (s *State) *Client{
 	if s.state != FOLLOWER {
 		return nil
@@ -75,13 +84,13 @@ func (s *State)GetTerm() int {
 	return s.termCount
 }
 func (s *State)log(i ... interface{}) {
-/*
+
 	fmt.Print("-[RAFT]- ")
 	for x := 0; x < len(i); x++ {
 		fmt.Print(" ", i[x])
 	}
 	fmt.Println("")
- */
+ 
 }
 func (s *State) Details() {
 	s.log("State - ", s.state, " Term - ", s.termCount)
@@ -155,6 +164,8 @@ func Init(instance string, bootStrap bool) Raft {
 		grpcPortString: fmt.Sprintf(":%d%s", 900, inst),
 		http:           StartHttp(port, inst),
 		done:           make(chan bool),
+		pool:           sync.Pool{New: NewSf},
+		parser:         nil,
 	}
 	this.gServer = InitGrpc(this.grpcPortString)
 
@@ -226,33 +237,66 @@ func (s *State) StartGrpcElection() bool{
 	s.state = FOLLOWER
 	return false
 }
-func (s *State) SendLog(msg string) int{
-	lm := comms.LogMessage{Source: s.grpcPortString, Message: msg}
-	
+func NewSf() interface{}{
+	return &comms.QueryResponse{SFile: nil}
+}
+
+func (s *State) SendLookup(word string) *[]parser.SFile{ //nolint:cyclop    // lookup
+	var rspSfList []parser.SFile
 	if s.state == LEADER {
-		rsp, err := s.gServer.Logg.LogThis(context.Background(), &lm)
-		if err == nil && rsp != nil{
-			s.log(rsp.String())
-			return int(rsp.Status)
+		if s.gClient.Size() != 1 {
+			fmt.Println("ERORORORORORORORORORORORORRORO")
+			return nil
+		}
+		c := s.gClient
+		votes := 0
+		for it:= c.Iterator();it.Next();{
+			switch c := it.Value().(type){
+			case *Client:
+				rsp := c.SendLookupQuery(s.grpcPortString, word)
+				if rsp != nil {
+					for _, r := range rsp.SFile {
+						rspSfList = append(rspSfList, parser.SFile{
+							Filename:  r.FileName,
+							FileLoc:   r.FileLoc,
+							LineNum:   r.LineLoc,
+							WordIndex: r.WordLoc,
+						})
+					}
+					votes++
+				}else {
+					fmt.Println("Peer send nil response")
+				}
+			}
+		}
+		fmt.Println(votes, c.Size())
+		if votes == c.Size() {
+			return &rspSfList
+		}else {
+			return nil
 		}
 	} else if s.state == FOLLOWER {
 		if s.gClient.Size() != 1 {
 			fmt.Println("ERORORORORORORORORORORORORRORO")
-			return 0
+			return &rspSfList
 		}
-		c1, _ := s.gClient.Get(1)
-		switch c := c1.(type) {
-		case *Client:
-			r := c.SendLogToGrpcPeer(&logStruct{
-				source:  s.gServer.Server.portString,
-				message: msg,
-			})
-			return int(r.Status)
-		default:
-			fmt.Println("oops")
+		c1, _ := s.gClient.Get(0) // leader
+		client := StartGrpcClient(fmt.Sprintf("%s",c1))
+		rsp := client.SendLookupQuery(word, s.grpcPortString)
+		if rsp != nil {
+			for _, r := range rsp.SFile {
+				rspSfList = append(rspSfList, parser.SFile{
+					Filename:  r.FileName,
+					FileLoc:   r.FileLoc,
+					LineNum:   r.LineLoc,
+					WordIndex: r.WordLoc,
+				})
+			}
+		}else {
+			return nil
 		}
 	}
-	return 0
+	return &rspSfList
 }
 func (s*State)Run(inst string){
 	s.http.UpdatePeerList(inst) // akin to discovery

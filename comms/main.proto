@@ -3,22 +3,26 @@ syntax="proto3";
 package comms;
 option go_package = "../comms";
 
-service Logging {
-  rpc LogThis (LogMessage) returns (Response) {}
+
+service Lookup {
+  rpc Search (Query) returns (QueryResponse) {}
 }
 service Raft {
   rpc RequestVotes (Term) returns (Vote) {}
 }
-message LogMessage {
-  string Message = 1;
+
+message Query {
+  string Word = 1;
   string Source = 2;
 }
-message Response{
-  enum Status {
-    FAIL = 0;
-    SUCCESS = 1;
+message QueryResponse {
+  message SF {
+    string FileName = 1;
+    string FileLoc = 2;
+    repeated int32 LineLoc = 3;
+    repeated int32 WordLoc = 4;
   }
-  Status status = 1;
+  repeated SF SFile = 1;
 }
 message Term {
   int32 TermCount = 1;

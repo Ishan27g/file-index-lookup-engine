@@ -14,85 +14,85 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// LoggingClient is the client API for Logging service.
+// LookupClient is the client API for Lookup service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type LoggingClient interface {
-	LogThis(ctx context.Context, in *LogMessage, opts ...grpc.CallOption) (*Response, error)
+type LookupClient interface {
+	Search(ctx context.Context, in *Query, opts ...grpc.CallOption) (*QueryResponse, error)
 }
 
-type loggingClient struct {
+type lookupClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewLoggingClient(cc grpc.ClientConnInterface) LoggingClient {
-	return &loggingClient{cc}
+func NewLookupClient(cc grpc.ClientConnInterface) LookupClient {
+	return &lookupClient{cc}
 }
 
-func (c *loggingClient) LogThis(ctx context.Context, in *LogMessage, opts ...grpc.CallOption) (*Response, error) {
-	out := new(Response)
-	err := c.cc.Invoke(ctx, "/comms.Logging/LogThis", in, out, opts...)
+func (c *lookupClient) Search(ctx context.Context, in *Query, opts ...grpc.CallOption) (*QueryResponse, error) {
+	out := new(QueryResponse)
+	err := c.cc.Invoke(ctx, "/comms.Lookup/Search", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// LoggingServer is the server API for Logging service.
-// All implementations must embed UnimplementedLoggingServer
+// LookupServer is the server API for Lookup service.
+// All implementations must embed UnimplementedLookupServer
 // for forward compatibility
-type LoggingServer interface {
-	LogThis(context.Context, *LogMessage) (*Response, error)
+type LookupServer interface {
+	Search(context.Context, *Query) (*QueryResponse, error)
 }
 
-// UnimplementedLoggingServer must be embedded to have forward compatible implementations.
-type UnimplementedLoggingServer struct {
+// UnimplementedLookupServer must be embedded to have forward compatible implementations.
+type UnimplementedLookupServer struct {
 }
 
-func (UnimplementedLoggingServer) LogThis(context.Context, *LogMessage) (*Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method LogThis not implemented")
+func (UnimplementedLookupServer) Search(context.Context, *Query) (*QueryResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Search not implemented")
 }
-func (UnimplementedLoggingServer) mustEmbedUnimplementedLoggingServer() {}
+func (UnimplementedLookupServer) mustEmbedUnimplementedLookupServer() {}
 
-// UnsafeLoggingServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to LoggingServer will
+// UnsafeLookupServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to LookupServer will
 // result in compilation errors.
-type UnsafeLoggingServer interface {
-	mustEmbedUnimplementedLoggingServer()
+type UnsafeLookupServer interface {
+	mustEmbedUnimplementedLookupServer()
 }
 
-func RegisterLoggingServer(s grpc.ServiceRegistrar, srv LoggingServer) {
-	s.RegisterService(&Logging_ServiceDesc, srv)
+func RegisterLookupServer(s grpc.ServiceRegistrar, srv LookupServer) {
+	s.RegisterService(&Lookup_ServiceDesc, srv)
 }
 
-func _Logging_LogThis_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LogMessage)
+func _Lookup_Search_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Query)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(LoggingServer).LogThis(ctx, in)
+		return srv.(LookupServer).Search(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/comms.Logging/LogThis",
+		FullMethod: "/comms.Lookup/Search",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(LoggingServer).LogThis(ctx, req.(*LogMessage))
+		return srv.(LookupServer).Search(ctx, req.(*Query))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// Logging_ServiceDesc is the grpc.ServiceDesc for Logging service.
+// Lookup_ServiceDesc is the grpc.ServiceDesc for Lookup service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var Logging_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "comms.Logging",
-	HandlerType: (*LoggingServer)(nil),
+var Lookup_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "comms.Lookup",
+	HandlerType: (*LookupServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "LogThis",
-			Handler:    _Logging_LogThis_Handler,
+			MethodName: "Search",
+			Handler:    _Lookup_Search_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
