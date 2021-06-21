@@ -1,7 +1,0 @@
-module ishan dxxxxx RedissDB
-go require2
-require2
-github.com/emirpasic/gods require2
-github.com/gin-gonic/gin
-github.com/gorilla/websocket require1
-github.com/joho/godotenv
