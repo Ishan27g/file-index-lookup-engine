@@ -394,19 +394,19 @@ func file_main_proto_rawDescGZIP() []byte {
 
 var file_main_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_main_proto_goTypes = []interface{}{
-	(*Query)(nil),            // 0: comms.Query
-	(*QueryResponse)(nil),    // 1: comms.QueryResponse
-	(*Term)(nil),             // 2: comms.Term
-	(*Vote)(nil),             // 3: comms.Vote
-	(*Payload)(nil),          // 4: comms.Payload
-	(*QueryResponse_SF)(nil), // 5: comms.QueryResponse.SF
+	(*Query)(nil),            // 0: raft.Query
+	(*QueryResponse)(nil),    // 1: raft.QueryResponse
+	(*Term)(nil),             // 2: raft.Term
+	(*Vote)(nil),             // 3: raft.Vote
+	(*Payload)(nil),          // 4: raft.Payload
+	(*QueryResponse_SF)(nil), // 5: raft.QueryResponse.SF
 }
 var file_main_proto_depIdxs = []int32{
-	5, // 0: comms.QueryResponse.SFile:type_name -> comms.QueryResponse.SF
-	0, // 1: comms.Lookup.Search:input_type -> comms.Query
-	2, // 2: comms.Raft.RequestVotes:input_type -> comms.Term
-	1, // 3: comms.Lookup.Search:output_type -> comms.QueryResponse
-	3, // 4: comms.Raft.RequestVotes:output_type -> comms.Vote
+	5, // 0: raft.QueryResponse.SFile:type_name -> raft.QueryResponse.SF
+	0, // 1: raft.Lookup.Search:input_type -> raft.Query
+	2, // 2: raft.Raft.RequestVotes:input_type -> raft.Term
+	1, // 3: raft.Lookup.Search:output_type -> raft.QueryResponse
+	3, // 4: raft.Raft.RequestVotes:output_type -> raft.Vote
 	3, // [3:5] is the sub-list for method output_type
 	1, // [1:3] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name

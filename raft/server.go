@@ -1,4 +1,4 @@
-package comms
+package raft
 
 import (
 	"net"
@@ -8,7 +8,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	
-	comms "ishan/FSI/comms/grpc"
+	comms "ishan/FSI/raft/grpc"
 )
 var stop chan bool
 

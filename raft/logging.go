@@ -1,4 +1,4 @@
-package comms
+package raft
 
 import (
 	"sync"
@@ -6,7 +6,7 @@ import (
 	ll "github.com/emirpasic/gods/lists/singlylinkedlist"
 	"golang.org/x/net/context"
 	
-	comms "ishan/FSI/comms/grpc"
+	comms "ishan/FSI/raft/grpc"
 	"ishan/FSI/parser"
 )
 

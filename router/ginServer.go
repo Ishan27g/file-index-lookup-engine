@@ -12,7 +12,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	
-	"ishan/FSI/redisClient"
 	
 	"ishan/FSI/parser"
 )
@@ -22,7 +21,6 @@ type Service struct {
 	hostname string
 	port string
 	parser *parser.Parser
-	rclient redisClient.Rdb
 	LookupChan chan string
 	ResponseSfiles chan *[]parser.SFile
 }
@@ -37,7 +35,6 @@ func NewGinServer(p *parser.Parser, inst string) *Service {
 	
 	service = Service{
 		parser: p,
-		rclient: nil,// redisClient.Init(inst),
 		port:  ":" + strconv.Itoa(basePort), // todo +i only w/o conf.d
 		hostname: host,
 		LookupChan: make(chan string),

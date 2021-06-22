@@ -1,4 +1,4 @@
-package comms
+package raft
 
 import (
 	"fmt"
@@ -11,7 +11,7 @@ import (
 	ll "github.com/emirpasic/gods/lists/singlylinkedlist"
 	"github.com/joho/godotenv"
 	
-	comms "ishan/FSI/comms/grpc"
+	comms "ishan/FSI/raft/grpc"
 	"ishan/FSI/parser"
 )
 

@@ -31,7 +31,7 @@ func NewLookupClient(cc grpc.ClientConnInterface) LookupClient {
 
 func (c *lookupClient) Search(ctx context.Context, in *Query, opts ...grpc.CallOption) (*QueryResponse, error) {
 	out := new(QueryResponse)
-	err := c.cc.Invoke(ctx, "/comms.Lookup/Search", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/raft.Lookup/Search", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func _Lookup_Search_Handler(srv interface{}, ctx context.Context, dec func(inter
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/comms.Lookup/Search",
+		FullMethod: "/raft.Lookup/Search",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(LookupServer).Search(ctx, req.(*Query))
@@ -87,7 +87,7 @@ func _Lookup_Search_Handler(srv interface{}, ctx context.Context, dec func(inter
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Lookup_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "comms.Lookup",
+	ServiceName: "raft.Lookup",
 	HandlerType: (*LookupServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -116,7 +116,7 @@ func NewRaftClient(cc grpc.ClientConnInterface) RaftClient {
 
 func (c *raftClient) RequestVotes(ctx context.Context, in *Term, opts ...grpc.CallOption) (*Vote, error) {
 	out := new(Vote)
-	err := c.cc.Invoke(ctx, "/comms.Raft/RequestVotes", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/raft.Raft/RequestVotes", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +160,7 @@ func _Raft_RequestVotes_Handler(srv interface{}, ctx context.Context, dec func(i
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/comms.Raft/RequestVotes",
+		FullMethod: "/raft.Raft/RequestVotes",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RaftServer).RequestVotes(ctx, req.(*Term))
@@ -172,7 +172,7 @@ func _Raft_RequestVotes_Handler(srv interface{}, ctx context.Context, dec func(i
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Raft_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "comms.Raft",
+	ServiceName: "raft.Raft",
 	HandlerType: (*RaftServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

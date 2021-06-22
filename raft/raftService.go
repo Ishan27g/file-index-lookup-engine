@@ -1,4 +1,4 @@
-package comms
+package raft
 
 import (
 	"ishan/FSI/parser"

@@ -6,9 +6,10 @@ import (
 	"os"
 	"time"
 	
-	"ishan/FSI/comms"
 	parser "ishan/FSI/parser"
 	"ishan/FSI/router"
+	
+	"ishan/FSI/raft"
 )
 
 func load() (bool, string) {
@@ -28,7 +29,7 @@ func load() (bool, string) {
 func main(){
 	bs, inst := load()
 	time.Sleep(5 * time.Second)
-	raft := comms.NewRaftService(bs, inst)
+	raft := raft.NewRaftService(bs, inst)
 	
 	p := parser.Start(fmt.Sprintf(":%d%s", 900, inst))
 	rservice := router.NewGinServer(p, inst)

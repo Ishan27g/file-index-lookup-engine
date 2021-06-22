@@ -1,4 +1,4 @@
-package comms
+package raft
 
 import (
 	"time"
@@ -6,7 +6,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	
-	comms "ishan/FSI/comms/grpc"
+	comms "ishan/FSI/raft/grpc"
 )
 func (client *Client)log(v ... interface{}) {
 	// fmt.Println("[Grpc-Client]", v)
