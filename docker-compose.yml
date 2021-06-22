@@ -1,0 +1,80 @@
+version: "3.9"
+
+services:
+
+  service1:
+    image: ishan27g/shipyard-exp:fsi-raft-service.0.1
+    networks:
+      raft_nw:
+    expose:
+      - 9501 # /details -> raft details
+      - 9001
+    container_name: service1
+    hostname: service1
+    command: /bin/sh -c "./entrypoint.sh 1 -bootstrap=true"
+
+  service2:
+    image: ishan27g/shipyard-exp:fsi-raft-service.0.1
+    networks:
+      raft_nw:
+    expose:
+      - 9502
+      - 9002
+    container_name: service2
+    hostname: service2
+    command: /bin/sh -c "./entrypoint.sh 2"
+
+  service3:
+    image: ishan27g/shipyard-exp:fsi-raft-service.0.1
+    networks:
+      raft_nw:
+    expose:
+      - 9503
+      - 9003
+    container_name: service3
+    hostname: service3
+    command: /bin/sh -c "./entrypoint.sh 3"
+
+  service4:
+    image: ishan27g/shipyard-exp:fsi-raft-service.0.1
+    networks:
+      raft_nw:
+    expose:
+      - 9504
+      - 9004
+    container_name: service4
+    hostname: service4
+    command: /bin/sh -c "./entrypoint.sh 4"
+
+  service5:
+    image: ishan27g/shipyard-exp:fsi-raft-service.0.1
+    networks:
+      raft_nw:
+    expose:
+      - 9505
+      - 9005
+    container_name: service5
+    hostname: service5
+    command: /bin/sh -c "./entrypoint.sh 5"
+
+  nginx:
+    image: nginx:1.16.0-alpine
+    volumes:
+      - ./conf.d/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:9999"
+    networks:
+        raft_nw:
+    depends_on:
+      - service1
+      - service2
+      - service3
+      - service4
+      - service5
+
+networks:
+  raft_nw:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.100.0/24

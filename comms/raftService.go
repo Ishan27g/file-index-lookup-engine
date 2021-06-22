@@ -29,7 +29,7 @@ func NewRaftService(bootstrap bool, instance string) *RaftService{
 	go func() {
 		for {
 			rs.raft.Run(inst)
-			rs.raft.Details()
+			// rs.raft.Details()
 			select {
 			case <-rs.done:
 				return

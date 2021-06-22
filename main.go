@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 	
 	"ishan/FSI/comms"
 	parser "ishan/FSI/parser"
@@ -26,7 +27,7 @@ func load() (bool, string) {
 }
 func main(){
 	bs, inst := load()
-	
+	time.Sleep(5 * time.Second)
 	raft := comms.NewRaftService(bs, inst)
 	
 	p := parser.Start(fmt.Sprintf(":%d%s", 900, inst))

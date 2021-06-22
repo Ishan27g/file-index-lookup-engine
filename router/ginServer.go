@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"time"
 	
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -29,15 +30,15 @@ func pong(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"ok":"Pong"})
 }
 func NewGinServer(p *parser.Parser, inst string) *Service {
-	_ = godotenv.Load("./router/.env")
+	_ = godotenv.Load(".env")
 	basePort,_ := strconv.Atoi(os.Getenv("HTTP-PORT"))
-	i, _ := strconv.Atoi(inst)
+	_, _ = strconv.Atoi(inst)
 	host, _ := os.Hostname()
 	
 	service = Service{
 		parser: p,
-		rclient: redisClient.Init(inst),
-		port:  ":" + strconv.Itoa(basePort+i),
+		rclient: nil,// redisClient.Init(inst),
+		port:  ":" + strconv.Itoa(basePort), // todo +i only w/o conf.d
 		hostname: host,
 		LookupChan: make(chan string),
 		ResponseSfiles: make(chan *[]parser.SFile),
@@ -79,18 +80,15 @@ func (p *Service)search(c *gin.Context) {
 		sFiles = <- p.ResponseSfiles
 		done <- true
 	}()
+	timeout, _ := strconv.Atoi(os.Getenv("GRPC-Time-Out"))
 	sfList := p.parser.Find(word)
-	if sfList != nil {
-		fmt.Println("Local search - ", sfList)
+	select {
+	case <- time.After(time.Duration(timeout) * time.Second):
+		fmt.Println("----------timing out---------")
+		c.JSON(http.StatusOK, gin.H{"local":sfList})
+	case <- done:
+		c.JSON(http.StatusOK, gin.H{"local":sfList, "remote": sFiles })
 	}
-	<- done
-	
-	// fmt.Println("sfiles - ", sFiles)
-	// fmt.Println("sfList - ", sfList)
-	// fmt.Println()
-	c.JSON(http.StatusOK, gin.H{"local":sfList, "remote": sFiles })
-	
-	// c.JSON(http.StatusExpectationFailed, "")
 }
 
 func (p *Service)fileUpload(c *gin.Context) {
@@ -104,10 +102,11 @@ func (p *Service)fileUpload(c *gin.Context) {
 			c.JSON(http.StatusExpectationFailed, gin.H{"Not Uploaded" : "no"})
 			return
 		}
+		
 		go func() {
 			if p.parser.AddFile(dst) {
-				fmt.Println("Saving to redis", dst, p.hostname+p.port)
-				p.rclient.Add(dst, p.hostname+p.port)
+				// fmt.Println("Saving to redis", dst, p.hostname+p.port)
+				// p.rclient.Add(dst, p.hostname+p.port)
 			}
 		}()
 	}

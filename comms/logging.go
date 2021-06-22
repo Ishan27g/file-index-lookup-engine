@@ -1,7 +1,6 @@
 package comms
 
 import (
-	"fmt"
 	"sync"
 	
 	ll "github.com/emirpasic/gods/lists/singlylinkedlist"
@@ -47,25 +46,34 @@ func (rd *LData) Search(ctx context.Context, query *comms.Query) (*comms.QueryRe
 		}
 		return &com,nil
 	}else { // I am leader, a follower sent this message
+		lock := sync.Mutex{}
+		var wg sync.WaitGroup
 		for it := rd.followers.Iterator(); it.Next(); { // send to my followers
-			switch c := it.Value().(type) {
-			case *Client:
-				rsp := c.SendLookupQuery(query.Word, query.Source)
-				if rsp != nil && rsp.SFile != nil {
-					for _, r := range rsp.SFile {
-						com.SFile = append(com.SFile, &comms.QueryResponse_SF{
-							FileName:  r.FileName,
-							FileLoc:   r.FileLoc,
-							LineLoc:   r.LineLoc,
-							WordLoc: r.WordLoc,
-						})
+			wg.Add(1)
+			go func(i interface{}, l *sync.Mutex) {
+				defer wg.Done()
+				switch c := i.(type) {
+				case *Client:
+					rsp := c.SendLookupQuery(query.Word, query.Source)
+					if rsp != nil && rsp.SFile != nil {
+						l.Lock()
+						for _, r := range rsp.SFile {
+							com.SFile = append(com.SFile, &comms.QueryResponse_SF{
+								FileName:  r.FileName,
+								FileLoc:   r.FileLoc,
+								LineLoc:   r.LineLoc,
+								WordLoc: r.WordLoc,
+							})
+						}
+						l.Unlock()
 					}
 				}
-			}
+			}(it.Value(), &lock)
 		}
-		fmt.Println(query.Word, query.Source)
+		// fmt.Println(query.Word, query.Source)
 		sfList := rd.parser.Find(query.Word)
 		if sfList != nil{
+			lock.Lock()
 			for _, sf:= range *sfList {
 				com.SFile = append(com.SFile, &comms.QueryResponse_SF{
 					FileName: sf.GetFileName(),
@@ -74,7 +82,9 @@ func (rd *LData) Search(ctx context.Context, query *comms.Query) (*comms.QueryRe
 					WordLoc:  sf.WordIndex,
 				})
 			}
+			lock.Unlock()
 		}
+		wg.Wait()
 	}
 	return &com, nil
 }

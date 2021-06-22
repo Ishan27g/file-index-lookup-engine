@@ -52,10 +52,15 @@ func (hs*HttpSrv)startServer() {
 	
 	hs.Log("Listening on "+ hs.portString)
 	
-	hs.g.GET("/ping", pong)
+	hs.g.GET("/details", hs.details)
 	
-	hs.g.GET("/protocol/heartBeat", hs.restartHeartBeatTimeout) // ?leaderPort=&termCount=
-	hs.g.GET("/protocol/voteReqFromLeader", hs.voteRequestHandler) // ?leaderPort=&termCount=
+	p := hs.g.Group("/protocol")
+	{
+		p.GET("/ping", pong)
+		p.GET("/heartBeat", hs.restartHeartBeatTimeout) // ?leaderPort=&termCount=
+		p.GET("/voteReqFromLeader", hs.voteRequestHandler) // ?leaderPort=&termCount=
+	}
+	
 	_ = hs.g.Run(hs.portString)
 }
 
@@ -129,10 +134,10 @@ func (hs*HttpSrv)voteRequestHandler(context *gin.Context) {
 func (hs *HttpSrv)loadConfig(instance string) {
 	inst, _ := strconv.Atoi(instance)
 	possiblePeers := ll.New()
-	for i := 1; i <= 3; i++ {
+	for i := 1; i <= 5; i++ {
 		if inst != i {
 			port:= os.Getenv("HTTP-"+strconv.Itoa(i))
-			addr := os.Getenv("HOST") + ":" + port
+			addr := os.Getenv("HOST" + strconv.Itoa(i)) + ":" + port
 			possiblePeers.Add(addr)
 		}
 	}
@@ -152,7 +157,7 @@ func pingPeers(peers *ll.List) *ll.List{
 	updatedPeers := ll.New()
 	// log("Updating peer list")
 	for it:=peers.Iterator();it.Next(); {
-		endpoint := fmt.Sprintf("%v/ping",it.Value())
+		endpoint := fmt.Sprintf("%v/protocol/ping",it.Value())
 		wg.Add(1)
 		go func(updatedPeers *ll.List, v interface{}) {
 			defer wg.Done()
@@ -234,6 +239,18 @@ func (hs *HttpSrv) StopHttp() {
 	close(hs.UpdateLeaderGrpcPort)
 	close(hs.HeartBeatReceived)
 	close(hs.UpdateTermCount)
+}
+
+func (hs *HttpSrv) details(context *gin.Context) {
+	host,_ := os.Hostname()
+	context.JSON(http.StatusOK, gin.H{
+		"Hostname": host + hs.portString,
+		"RaftState": hs.raftState,
+		"RaftTerm": hs.termCount,
+		"leaderGrpcPort": hs.leaderGrpcPort,
+		"FollowerList": hs.FollowerList,
+		"portString": hs.portString,
+	})
 }
 func StartHttp(port string, inst string) *HttpSrv{
 	if strings.Compare(os.Getenv("test"), "true") != 0{

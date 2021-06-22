@@ -22,7 +22,7 @@ var randomInt = func() int{
 	return rand.Intn(1000)
 }
 const (
-	electionTimeout = 10000
+	electionTimeout = 20000
 	LEADER = iota + 1
 	CANDIDATE
 	FOLLOWER
@@ -95,7 +95,8 @@ func (s *State)log(i ... interface{}) {
 func (s *State) Details() {
 	s.log("State - ", s.state, " Term - ", s.termCount)
 	if s.state == FOLLOWER {
-		s.log("Leader - grpc", s.gClient.String())
+		s1, _ :=  s.gClient.Get(0)
+		s.log("Leader - grpc - ",s1)
 	}else if s.state == LEADER {
 		s.log("Followers - grpc", s.gServer.Logg.followers.String())
 	}
@@ -109,12 +110,13 @@ var loadGrpcConfig = func() *ll.List {
 	instance, _ := strconv.Atoi(inst)
 	possiblePeers := ll.New()
 	var wg sync.WaitGroup
-	for i := 1; i <= 3; i++ {
+	for i := 1; i <= 5; i++ {
 		if instance != i {
 			wg.Add(1)
 			go func(i int) {
 				defer wg.Done()
-				port := ":" + os.Getenv("GRPC-"+strconv.Itoa(i))
+				port := "service"+strconv.Itoa(i)+ ":" + os.Getenv("GRPC-"+strconv.Itoa(i))
+			//	fmt.Println("CONNECTING TO ", port)
 				if client := StartGrpcClient(port); client!=nil{
 					possiblePeers.Add(client)
 				}
@@ -161,7 +163,7 @@ func Init(instance string, bootStrap bool) Raft {
 		termCount:      0,
 		gServer:        nil,
 		gClient:        ll.New(),
-		grpcPortString: fmt.Sprintf(":%d%s", 900, inst),
+		grpcPortString: fmt.Sprintf("service%s:%d%s", inst, 900, inst),
 		http:           StartHttp(port, inst),
 		done:           make(chan bool),
 		pool:           sync.Pool{New: NewSf},
@@ -189,6 +191,12 @@ func Init(instance string, bootStrap bool) Raft {
 	}()
 	if bootStrap{
 		this.becomeLeader()
+		go func() {
+			if this.StartGrpcElection(){ // elected leader via grpc
+				this.gServer.Server.raftState = this.state
+				this.gServer.Server.termCount = this.termCount
+			}
+		}()
 	}
 	return this
 }
@@ -203,7 +211,7 @@ func (s *State) UpdateGlobalState(state , term int) {
 }
 func (s *State)becomeLeader(){
 	s.state = LEADER
-	// s.gClient = loadGrpcConfig()
+	s.http.leaderGrpcPort = s.grpcPortString
 	s.gServer.Logg.UpdatePeers(loadGrpcConfig())
 }
 func (s *State) StartGrpcElection() bool{
@@ -232,6 +240,7 @@ func (s *State) StartGrpcElection() bool{
 	fmt.Println(votes, c.Size())
 	if votes == c.Size() {
 		s.state = LEADER
+		s.log("ELECTED LEADER with ", votes, "votes")
 		return true
 	}
 	s.state = FOLLOWER
@@ -245,7 +254,7 @@ func (s *State) SendLookup(word string) *[]parser.SFile{ //nolint:cyclop    // l
 	var rspSfList []parser.SFile
 	if s.state == LEADER {
 		if s.gClient.Size() != 1 {
-			fmt.Println("ERORORORORORORORORORORORORRORO")
+			// fmt.Println("ERORORORORORORORORORORORORRORO")
 			return nil
 		}
 		c := s.gClient
@@ -253,7 +262,7 @@ func (s *State) SendLookup(word string) *[]parser.SFile{ //nolint:cyclop    // l
 		for it:= c.Iterator();it.Next();{
 			switch c := it.Value().(type){
 			case *Client:
-				rsp := c.SendLookupQuery(s.grpcPortString, word)
+				rsp := c.SendLookupQuery(word, s.grpcPortString)
 				if rsp != nil {
 					for _, r := range rsp.SFile {
 						rspSfList = append(rspSfList, parser.SFile{
@@ -281,6 +290,7 @@ func (s *State) SendLookup(word string) *[]parser.SFile{ //nolint:cyclop    // l
 			return &rspSfList
 		}
 		c1, _ := s.gClient.Get(0) // leader
+		// fmt.Println("MY LEADER IS - ", c1)
 		client := StartGrpcClient(fmt.Sprintf("%s",c1))
 		rsp := client.SendLookupQuery(word, s.grpcPortString)
 		if rsp != nil {
