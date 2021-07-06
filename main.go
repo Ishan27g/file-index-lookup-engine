@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"os"
 	"time"
-	
-	parser "ishan/FSI/parser"
-	"ishan/FSI/router"
-	
-	"ishan/FSI/raft"
+
+	"github.com/Ishan27g/file-index-lookup-engine/parser"
+	"github.com/Ishan27g/file-index-lookup-engine/raft"
+	"github.com/Ishan27g/file-index-lookup-engine/router"
 )
 
 func load() (bool, string) {
@@ -18,7 +17,7 @@ func load() (bool, string) {
 	flag.BoolVar(&bootstrap, "bootstrap", false, "bootstrap a leader for first run")
 	flag.StringVar(&inst, "instance", "", "unique instance(1-5)")
 	flag.Parse()
-	if inst == ""{
+	if inst == "" {
 		fmt.Println("Invalid options")
 		fmt.Println("Usage - ./main -instance=[1..5] -bootstrap=true")
 		fmt.Println("Usage - ./main -instance=[1..5] -bootstrap=false")
@@ -26,19 +25,19 @@ func load() (bool, string) {
 	}
 	return bootstrap, inst //nolint:govet
 }
-func main(){
+func main() {
 	bs, inst := load()
 	time.Sleep(5 * time.Second)
 	raft := raft.NewRaftService(bs, inst)
-	
+
 	p := parser.Start(fmt.Sprintf(":%d%s", 900, inst))
 	rservice := router.NewGinServer(p, inst)
 	raft.SetParser(p)
-	for  {
+	for {
 		select {
-		case word:= <- rservice.LookupChan:
+		case word := <-rservice.LookupChan:
 			raft.ForwardLog <- word
-			sfList := <- raft.ResponseSfList
+			sfList := <-raft.ResponseSfList
 			rservice.ResponseSfiles <- sfList
 		}
 	}
