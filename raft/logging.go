@@ -2,12 +2,12 @@ package raft
 
 import (
 	"sync"
-	
+
 	ll "github.com/emirpasic/gods/lists/singlylinkedlist"
 	"golang.org/x/net/context"
-	
-	comms "ishan/FSI/raft/grpc"
-	"ishan/FSI/parser"
+
+	"github.com/Ishan27g/file-index-lookup-engine/parser"
+	comms "github.com/Ishan27g/file-index-lookup-engine/raft/grpc"
 )
 
 type L interface {
@@ -17,26 +17,25 @@ type L interface {
 }
 
 type LData struct {
-	msg *comms.Query
+	msg       *comms.Query
 	followers *ll.List
-	pool sync.Pool
-	parser         *parser.Parser
+	pool      sync.Pool
+	parser    *parser.Parser
 }
 
-func (rd *LData)SetParser(p *parser.Parser){
+func (rd *LData) SetParser(p *parser.Parser) {
 	rd.parser = p
 }
 
-
 func (rd *LData) Search(ctx context.Context, query *comms.Query) (*comms.QueryResponse, error) {
 	com := comms.QueryResponse{SFile: nil}
-	
+
 	if rd.followers.Size() == 0 {
 		sflist := rd.parser.Find(query.Word)
-		if sflist == nil{
-			return &comms.QueryResponse{SFile: nil},nil
+		if sflist == nil {
+			return &comms.QueryResponse{SFile: nil}, nil
 		}
-		for _, sf:= range *sflist{
+		for _, sf := range *sflist {
 			com.SFile = append(com.SFile, &comms.QueryResponse_SF{
 				FileName: sf.Filename,
 				FileLoc:  sf.FileLoc,
@@ -44,8 +43,8 @@ func (rd *LData) Search(ctx context.Context, query *comms.Query) (*comms.QueryRe
 				WordLoc:  sf.WordIndex,
 			})
 		}
-		return &com,nil
-	}else { // I am leader, a follower sent this message
+		return &com, nil
+	} else { // I am leader, a follower sent this message
 		lock := sync.Mutex{}
 		var wg sync.WaitGroup
 		for it := rd.followers.Iterator(); it.Next(); { // send to my followers
@@ -59,10 +58,10 @@ func (rd *LData) Search(ctx context.Context, query *comms.Query) (*comms.QueryRe
 						l.Lock()
 						for _, r := range rsp.SFile {
 							com.SFile = append(com.SFile, &comms.QueryResponse_SF{
-								FileName:  r.FileName,
-								FileLoc:   r.FileLoc,
-								LineLoc:   r.LineLoc,
-								WordLoc: r.WordLoc,
+								FileName: r.FileName,
+								FileLoc:  r.FileLoc,
+								LineLoc:  r.LineLoc,
+								WordLoc:  r.WordLoc,
 							})
 						}
 						l.Unlock()
@@ -72,9 +71,9 @@ func (rd *LData) Search(ctx context.Context, query *comms.Query) (*comms.QueryRe
 		}
 		// fmt.Println(query.Word, query.Source)
 		sfList := rd.parser.Find(query.Word)
-		if sfList != nil{
+		if sfList != nil {
 			lock.Lock()
-			for _, sf:= range *sfList {
+			for _, sf := range *sfList {
 				com.SFile = append(com.SFile, &comms.QueryResponse_SF{
 					FileName: sf.GetFileName(),
 					FileLoc:  sf.FileLoc,
@@ -91,15 +90,15 @@ func (rd *LData) Search(ctx context.Context, query *comms.Query) (*comms.QueryRe
 
 func NewDataSync(source string) *LData {
 	return &LData{
-		msg: &comms.Query{Source: source, Word: ""},
+		msg:       &comms.Query{Source: source, Word: ""},
 		followers: ll.New(),
-		pool: sync.Pool{New: newQuery},
-		parser: nil,
+		pool:      sync.Pool{New: newQuery},
+		parser:    nil,
 	}
 }
 func (rd *LData) UpdatePeers(list *ll.List) {
 	rd.followers = list
 }
-func newQuery()interface{}{
+func newQuery() interface{} {
 	return &comms.Query{Source: "", Word: ""}
 }

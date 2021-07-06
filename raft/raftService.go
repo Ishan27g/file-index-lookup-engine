@@ -1,30 +1,30 @@
 package raft
 
 import (
-	"ishan/FSI/parser"
+	"github.com/Ishan27g/file-index-lookup-engine/parser"
 )
 
 type RaftService struct {
-	ForwardLog chan string // search for this word
-	done chan bool
-	raft Raft
+	ForwardLog     chan string // search for this word
+	done           chan bool
+	raft           Raft
 	ResponseSfList chan *[]parser.SFile
 }
 
-func (rs *RaftService)Quit(){
+func (rs *RaftService) Quit() {
 	rs.done <- true
 	close(rs.ForwardLog)
 	rs.raft.Quit()
 }
-func NewRaftService(bootstrap bool, instance string) *RaftService{
+func NewRaftService(bootstrap bool, instance string) *RaftService {
 	// http to reach consensus (for heartbeat & initiating election on timeout)
 	// grpc to send updates (both ways -> server always on, client created per request)
 
 	rs := RaftService{
-		ForwardLog: make(chan string, 5),
+		ForwardLog:     make(chan string, 5),
 		ResponseSfList: make(chan *[]parser.SFile, 5),
-		done:       make(chan bool),
-		raft :      Init(instance, bootstrap),
+		done:           make(chan bool),
+		raft:           Init(instance, bootstrap),
 	}
 	go func() {
 		for {
@@ -43,7 +43,7 @@ func NewRaftService(bootstrap bool, instance string) *RaftService{
 
 	return &rs
 }
-func (rs *RaftService)GetState()int{
+func (rs *RaftService) GetState() int {
 	return rs.raft.GetState()
 }
 

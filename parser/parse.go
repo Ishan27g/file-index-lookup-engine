@@ -7,14 +7,14 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	
+
 	tree "github.com/emirpasic/gods/trees/avltree"
 )
-var chars = []string{"a","b","c","d","e","f","g","h","i","j","k","l","m","n",
-	"o","p","q","r","s","t","u","v","w","x","y","z","A","B","C","D","E","F","G",
-	"H","I","J","K","L","M","N", "O","P","Q","R","S","T","U","V","W","X","Y",
-	"Z","0","1","2","3","4","5","6","7","8","9"}
 
+var chars = []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n",
+	"o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "A", "B", "C", "D", "E", "F", "G",
+	"H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y",
+	"Z", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"}
 
 type SFile struct {
 	Filename  string
@@ -24,10 +24,11 @@ type SFile struct {
 }
 type Parser struct {
 	source string
-	lock sync.Mutex
-	tree *tree.Tree
+	lock   sync.Mutex
+	tree   *tree.Tree
 }
-func Start(inst string)*Parser {
+
+func Start(inst string) *Parser {
 	avl1 := tree.NewWithIntComparator()
 	for _, char := range chars {
 		avl2 := tree.NewWithStringComparator()
@@ -35,11 +36,11 @@ func Start(inst string)*Parser {
 	}
 	return &Parser{
 		source: inst,
-		lock: sync.Mutex{},
-		tree: avl1,
+		lock:   sync.Mutex{},
+		tree:   avl1,
 	}
 }
-func (p *Parser)AddFile(filePath string)bool {
+func (p *Parser) AddFile(filePath string) bool {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return false
@@ -50,11 +51,11 @@ func (p *Parser)AddFile(filePath string)bool {
 			return
 		}
 	}(file)
-	
+
 	lineNum := 0
 	lines := make(map[int][]string)
 	words := make(map[string]*SFile)
-	
+
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
 	for scanner.Scan() {
@@ -75,7 +76,7 @@ func (p *Parser)AddFile(filePath string)bool {
 	}
 	words = buildWordMap(lines, words)
 	p.lock.Lock()
-	fmt.Println("-asa-das" , words)
+	fmt.Println("-asa-das", words)
 	buildTree(p.tree, words)
 	p.lock.Unlock()
 	return true
@@ -83,7 +84,7 @@ func (p *Parser)AddFile(filePath string)bool {
 
 func buildWordMap(lines map[int][]string, words map[string]*SFile) map[string]*SFile {
 	for lineNum, lineStr := range lines {
-		for i, word := range lineStr{
+		for i, word := range lineStr {
 			wordLoc := words[word]
 			wordLoc.WordIndex = append(wordLoc.WordIndex, int32(i))
 			wordLoc.LineNum = append(wordLoc.LineNum, int32(lineNum))
@@ -95,7 +96,7 @@ func buildWordMap(lines map[int][]string, words map[string]*SFile) map[string]*S
 
 func buildTree(t *tree.Tree, words map[string]*SFile) {
 	for word, sf := range words {
-		if word == ""{
+		if word == "" {
 			continue
 		}
 		w := int(word[0])
@@ -110,30 +111,30 @@ func buildTree(t *tree.Tree, words map[string]*SFile) {
 						sfl = append(sfl, sf)
 						c.Put(word, sfl)
 					}
-				}else {
+				} else {
 					var sfl []*SFile
 					sfl = append(sfl, sf)
 					c.Put(word, sfl)
 				}
-				t.Put(w,c)
+				t.Put(w, c)
 			}
 		}
 	}
 }
-func PrintFull(parser *Parser){
+func PrintFull(parser *Parser) {
 	parser.lock.Lock()
-	for tre := parser.tree.Iterator(); tre.Next();{
+	for tre := parser.tree.Iterator(); tre.Next(); {
 		char := tre.Key()
 		wordTree := tre.Value()
 		switch wd := wordTree.(type) {
 		case *tree.Tree:
-			for w := wd.Iterator(); w.Next();{
+			for w := wd.Iterator(); w.Next(); {
 				word := w.Key()
 				sfList := w.Value()
 				switch sfl := sfList.(type) {
 				case []*SFile:
 					fmt.Println("Char ", char, " word ", word)
-					for sf := range sfl{
+					for sf := range sfl {
 						fmt.Println("\t", sf)
 					}
 				}
@@ -142,7 +143,7 @@ func PrintFull(parser *Parser){
 	}
 	parser.lock.Unlock()
 }
-func (p *Parser)Find(word string) *[]SFile {
+func (p *Parser) Find(word string) *[]SFile {
 	p.lock.Lock()
 	child, found := p.tree.Get(int(word[0])) // char
 	p.lock.Unlock()
@@ -158,14 +159,13 @@ func (p *Parser)Find(word string) *[]SFile {
 						sFile = append(sFile, *file)
 					}
 				}
-				fmt.Println("-----------------------------------------Found------------------------------------------------")
-				return &sFile
+				return &sFile // found
 			}
 		}
 	}
 	return nil
 }
-func Stringify(sfList []SFile)string{
+func Stringify(sfList []SFile) string {
 	msg := ""
 	for i, file := range sfList {
 		msg += strconv.Itoa(i) + ","
@@ -183,6 +183,6 @@ func Stringify(sfList []SFile)string{
 	}
 	return msg
 }
-func (sf * SFile)GetFileName()string{
+func (sf *SFile) GetFileName() string {
 	return sf.Filename
 }

@@ -2,30 +2,30 @@ package raft
 
 import (
 	"time"
-	
+
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	
-	comms "ishan/FSI/raft/grpc"
+
+	comms "github.com/Ishan27g/file-index-lookup-engine/raft/grpc"
 )
-func (client *Client)log(v ... interface{}) {
+
+func (client *Client) log(v ...interface{}) {
 	// fmt.Println("[Grpc-Client]", v)
 }
 
-
 type Client struct {
-	conn           *grpc.ClientConn
-	conRaft        comms.RaftClient
-	conLog         comms.LookupClient
-	close          chan bool
-	
+	conn    *grpc.ClientConn
+	conRaft comms.RaftClient
+	conLog  comms.LookupClient
+	close   chan bool
 }
+
 func StartGrpcClient(grpcPeer string) *Client {
 	client := Client{
-		conn:           nil,
-		conRaft:        nil,
-		conLog:         nil,
-		close: make(chan bool),
+		conn:    nil,
+		conRaft: nil,
+		conLog:  nil,
+		close:   make(chan bool),
 	}
 	var err error
 	ctx, _ := context.WithTimeout(context.Background(), 100*time.Millisecond)
@@ -37,12 +37,12 @@ func StartGrpcClient(grpcPeer string) *Client {
 	}
 	client.conRaft = comms.NewRaftClient(client.conn)
 	client.conLog = comms.NewLookupClient(client.conn)
-	
+
 	return &client
 }
-func (client *Client)SendVoteReq(termCount int, leaderPort string) bool{
+func (client *Client) SendVoteReq(termCount int, leaderPort string) bool {
 	votes, err := client.conRaft.RequestVotes(context.Background(), &comms.Term{
-		TermCount: int32(termCount),
+		TermCount:  int32(termCount),
 		LeaderPort: leaderPort,
 	})
 	if err != nil {
@@ -51,7 +51,7 @@ func (client *Client)SendVoteReq(termCount int, leaderPort string) bool{
 	client.log(votes.Elected)
 	return votes.Elected
 }
-func (client *Client) SendLookupQuery(word, source string) *comms.QueryResponse{ // ask peer to lookup
+func (client *Client) SendLookupQuery(word, source string) *comms.QueryResponse { // ask peer to lookup
 	msg := newQuery().(*comms.Query)
 	msg.Word = word
 	msg.Source = source
@@ -61,7 +61,6 @@ func (client *Client) SendLookupQuery(word, source string) *comms.QueryResponse{
 	}
 	return data
 }
-func (client *Client)Close(){
+func (client *Client) Close() {
 	defer client.conn.Close()
 }
-
