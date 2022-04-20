@@ -30,13 +30,13 @@ The services are interlinked via Http + gRPC over internal docker networks.
 ### Upload '.txt' files
 
 ```shell
-curl --location --request POST 'localhost:80/service/upload' --form 'files=@"./sample.txt1"' --form 'files=@"./sample2.txt1"' 
+curl --location --request POST 'localhost:80/service/upload' --form 'files=@"./sample.txt"' --form 'files=@"./sample2.txt"' 
 ````
 
 ### Search for a word from the uploaded file(s)
 
 ```shell
-curl --location --request GET 'localhost:80/service/search?word="foo"
+curl --location --request GET 'localhost:80/service/search?word=foo'
 ```
 
 ### Get details (raft-state, raft-term, raft-leader, hostname, ports)
@@ -67,5 +67,5 @@ docker-compose down && docker-compose stop
 #### Docker Image
 
 ```shell
-docker pull ishan27g/fsi-raft-service:v0.1
+docker pull ishan27g/fsi-raft-service:v0.2
 ```

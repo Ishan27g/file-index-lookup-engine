@@ -1,11 +1,11 @@
 #!/bin/sh
 
-# to build docker image -> ./conf.d/doc.sh fsi-raft-service
+# from root `./conf.d/doc.sh fsi-raft-service`
+version=v0.2
 
 cp ./conf.d/Dockerfile .
-docker build -t "$1" .
-docker tag $1 $1
+docker build -t "$1":$version .
+docker tag "$1":$version ishan27g/"$1":$version
 rm Dockerfile
 
-# to push new image
-# docker tag $1 ishan27g/$1:v0.1
+# docker push ishan27g/fsi-raft-service:v0.2

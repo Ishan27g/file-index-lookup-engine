@@ -4,3 +4,4 @@
 main
 vendor/*
 ./sample_files/*
+*.txt
